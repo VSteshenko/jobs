@@ -24,9 +24,28 @@ public struct JobsProvider: Provider {
         }
 
         app.register(JobsConfiguration.self) { _ in
-            return JobsConfiguration()
+            return JobsConfiguration(application: app)
         }
 
+        app.register(instance: JobsQueue.default)
+
+        app.register(JobsDriver.self) { app in
+            return JobsDefaultDriver(on: app.make())
+        }
+
+        app.register(JobsWorker.self) { app in
+            return .init(configuration: app.make(),
+                         driver: app.make(),
+                         logger: app.make(),
+                         on: app.make())
+        }
+
+        app.register(singleton: ScheduledJobsWorker.self) { app in
+            return .init(configuration: app.make(),
+                         logger: app.make(),
+                         on: app.make())
+        }
+        
         app.register(singleton: JobsCommand.self, boot: { app in
             return .init(application: app)
         }, shutdown: { jobs in
@@ -36,6 +55,22 @@ public struct JobsProvider: Provider {
         app.register(extension: CommandConfiguration.self) { configuration, a in
             configuration.use(a.make(JobsCommand.self), as: self.commandKey)
         }
+    }
+    
+    public func didBoot(_ app: Application) throws {
+        let worker = app.make(JobsWorker.self)
+        worker.start(on: app.make())
+
+        let sworker = app.make(ScheduledJobsWorker.self)
+        try sworker.start()
+    }
+
+    public func willShutdown(_ app: Application) {
+        let worker = app.make(JobsWorker.self)
+        worker.shutdown()
+
+        let sworker = app.make(ScheduledJobsWorker.self)
+        sworker.shutdown()
     }
 }
 

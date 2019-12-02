@@ -9,6 +9,7 @@ final class JobsWorker {
     var context: JobContext {
         return .init(
             userInfo: self.configuration.userInfo,
+            application: self.configuration.application,
             on: self.eventLoop
         )
     }

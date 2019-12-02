@@ -19,15 +19,18 @@ public struct JobsConfiguration {
     /// The key that stores the data about a job. Defaults to `vapor_jobs`
     public var persistenceKey: String
     
+    public var application: Application
+    
     public var userInfo: [AnyHashable: Any]
     
     /// Creates an empty `JobsConfig`
-    public init(refreshInterval: TimeAmount = .seconds(1), persistenceKey: String = "vapor_jobs") {
+    public init(application: Application, refreshInterval: TimeAmount = .seconds(1), persistenceKey: String = "vapor_jobs") {
         self.storage = [:]
         self.scheduledStorage = []
         self.logger = Logger(label: "vapor.codes.jobs")
         self.refreshInterval = refreshInterval
         self.persistenceKey = persistenceKey
+        self.application = application
         self.userInfo = [:]
     }
     
