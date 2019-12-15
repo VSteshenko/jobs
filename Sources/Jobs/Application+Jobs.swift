@@ -35,6 +35,21 @@ extension Application {
         }
 
         struct Lifecycle: LifecycleHandler {
+            func willBoot(_ application: Application) throws {
+                struct Signature: CommandSignature {
+                    @Flag(name: "auto-schedule", help: "If true, Jobs will automatically run schedule jobs on boot")
+                    var autoSchedule: Bool
+
+                    init() { }
+                }
+
+                let signature = try Signature(from: &application.environment.commandInput)
+                if signature.autoSchedule {
+                    application.logger.info("Starting scheduled jobs worker")
+                    try application.jobs.storage.command.startScheduledJobs()
+                }
+            }
+
             func shutdown(_ application: Application) {
                 application.jobs.storage.command.shutdown()
                 if let driver = application.jobs.storage.driver {

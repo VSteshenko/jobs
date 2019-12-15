@@ -100,7 +100,7 @@ public final class JobsCommand: Command {
         }
     }
     
-    private func startScheduledJobs() throws {
+    func startScheduledJobs() throws {
         self.application.jobs.configuration.scheduledJobs
             .forEach { self.schedule($0) }
     }
