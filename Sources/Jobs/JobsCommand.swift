@@ -79,25 +79,23 @@ public final class JobsCommand: Command {
         }
     }
     
-    private func startJobs(on queueName: JobsQueueName) throws {
-        for eventLoop in eventLoopGroup.makeIterator() {
-            let worker = self.application.jobs.queue(queueName).worker
-            let task = eventLoop.scheduleRepeatedAsyncTask(
-                initialDelay: .seconds(0),
-                delay: worker.queue.configuration.refreshInterval
-            ) { task in
-                // run task
-                return worker.run().map {
-                    //Check if shutting down
-                    if self.isShuttingDown.load() {
-                        task.cancel()
-                    }
-                }.recover { error in
-                    worker.queue.logger.error("Job run failed: \(error)")
+    func startJobs(on queueName: JobsQueueName) throws {
+        let worker = self.application.jobs.queue(queueName).worker
+        let task = worker.queue.context.eventLoop.scheduleRepeatedAsyncTask(
+            initialDelay: .seconds(0),
+            delay: worker.queue.configuration.refreshInterval
+        ) { task in
+            // run task
+            return worker.run().map {
+                //Check if shutting down
+                if self.isShuttingDown.load() {
+                    task.cancel()
                 }
+            }.recover { error in
+                worker.queue.logger.error("Job run failed: \(error)")
             }
-            self.jobTasks.append(task)
         }
+        self.jobTasks.append(task)
     }
     
     func startScheduledJobs() throws {

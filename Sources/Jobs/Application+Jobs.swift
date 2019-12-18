@@ -37,6 +37,9 @@ extension Application {
         struct Lifecycle: LifecycleHandler {
             func willBoot(_ application: Application) throws {
                 struct Signature: CommandSignature {
+                    @Option(name: "queue", help: "If set, Jobs will automatically run queue on boot")
+                    var queue: String?
+
                     @Flag(name: "auto-schedule", help: "If true, Jobs will automatically run schedule jobs on boot")
                     var autoSchedule: Bool
 
@@ -48,6 +51,9 @@ extension Application {
                     application.logger.info("Starting scheduled jobs worker")
                     try application.jobs.storage.command.startScheduledJobs()
                 }
+                let queue: JobsQueueName = signature.queue.flatMap { .init(string: $0) } ?? .default
+                application.logger.info("Starting jobs worker (queue: \(queue.string))")
+                try application.jobs.storage.command.startJobs(on: queue)
             }
 
             func shutdown(_ application: Application) {
