@@ -80,25 +80,32 @@ public final class JobsCommand: Command {
     }
     
     func startJobs(on queueName: JobsQueueName) throws {
-        let worker = self.application.jobs.queue(queueName).worker
-        let task = worker.queue.context.eventLoop.scheduleRepeatedAsyncTask(
-            initialDelay: .seconds(0),
-            delay: worker.queue.configuration.refreshInterval
-        ) { task in
-            // run task
-            return worker.run().map {
-                //Check if shutting down
-                if self.isShuttingDown.load() {
-                    task.cancel()
+        for eventLoop in eventLoopGroup.makeIterator() {
+            let worker = self.application.jobs.queue(queueName, on: eventLoop).worker
+            let task = worker.queue.context.eventLoop.scheduleRepeatedAsyncTask(
+                initialDelay: .seconds(0),
+                delay: worker.queue.configuration.refreshInterval
+            ) { task in
+                // run task
+                return worker.run().map {
+                    //Check if shutting down
+                    if self.isShuttingDown.load() {
+                        task.cancel()
+                    }
+                }.recover { error in
+                    worker.queue.logger.error("Job run failed: \(error)")
                 }
-            }.recover { error in
-                worker.queue.logger.error("Job run failed: \(error)")
             }
+            self.jobTasks.append(task)
         }
-        self.jobTasks.append(task)
     }
     
     func startScheduledJobs() throws {
+        guard !self.application.jobs.configuration.scheduledJobs.isEmpty else {
+            self.application.logger.warning("No scheduled jobs exist, exiting scheduled jobs worker.")
+            return
+        }
+        
         self.application.jobs.configuration.scheduledJobs
             .forEach { self.schedule($0) }
     }
