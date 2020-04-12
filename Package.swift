@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.2
 import PackageDescription
 
 let package = Package(
@@ -10,10 +10,15 @@ let package = Package(
         .library(name: "Jobs", targets: ["Jobs"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.0.0-beta.2")
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.0.1")
     ],
     targets: [
-        .target(name: "Jobs", dependencies: ["Vapor"]),
-        .testTarget(name: "JobsTests", dependencies: ["Jobs", "XCTVapor"]),
+        .target(name: "Jobs", dependencies: [
+            .product(name: "Vapor", package: "vapor"),
+        ]),
+        .testTarget(name: "JobsTests", dependencies: [
+            .target(name: "Jobs"),
+            .target(name: "XCTVapor"),
+        ]),
     ]
 )
